@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Slideshow</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      height: 100vh-300px;
+      margin: 0;
+      background: transparent;
+    }
+    img {
+      height: 300px;            /* Scale all images to same height */
+      width: auto;             /* Preserve aspect ratio */
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+      transition: opacity 1s ease-in-out;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <img id="slideshow" src="" alt="Slideshow">
+
+  <script>
+    // Get URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("urls");
+
+    // Parse list of URLs (comma-separated)
+    let imageUrls = [];
+    if (urlParam) {
+      imageUrls = urlParam.split(",").map(u => decodeURIComponent(u.trim()));
+    }
+
+    // Fallback if none provided
+    if (imageUrls.length === 0) {
+    imageUrls = [
+        "https://picsum.photos/800/600?1",
+        "https://picsum.photos/800/600?2",
+        "https://picsum.photos/800/600?3"
+
+	    //	    "https://leadfluss.de/wp-content/uploads/2025/02/Leadfluss-gruenes-Logo-weisse-Schrift.png",
+    ];
+    }
+
+    const imgElement = document.getElementById("slideshow");
+    let currentIndex = 0;
+
+    function showNextImage() {
+      imgElement.style.opacity = 0; // fade out
+      setTimeout(() => {
+        imgElement.src = imageUrls[currentIndex];
+        imgElement.style.opacity = 1; // fade in
+        currentIndex = (currentIndex + 1) % imageUrls.length;
+      }, 1000);
+    }
+
+    // Start slideshow
+    imgElement.src = imageUrls[0];
+    currentIndex = 1;
+    setInterval(showNextImage, 4000); // change every 4 seconds
+  </script>
+</body>
+</html>
