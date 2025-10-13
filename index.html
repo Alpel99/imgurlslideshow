@@ -1,67 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Image Slideshow</title>
-  <style>
-    body {
-      display: flex;
-      align-items: center;
-      height: 100vh-300px;
-      margin: 0;
-      background: transparent;
-    }
-    img {
-      height: 300px;            /* Scale all images to same height */
-      width: auto;             /* Preserve aspect ratio */
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-      transition: opacity 1s ease-in-out;
-      opacity: 1;
-    }
-  </style>
+<meta charset="utf-8" />
+<title>Image Slideshow</title>
+<style>
+  html,body { 
+    height:100%;
+    margin:0;
+    background:transparent;
+    /*background:black;*/
+    display:flex;
+    /*align-items:center;*/
+    /*justify-content:center;*/
+  }
+  img {
+    height: 300px;            /* Scale all images to same height */
+    width: auto;             /* Preserve aspect ratio */
+    border-radius:12px;
+    box-shadow:0 0 20px rgba(255,255,255,0.15);
+    transition: opacity 600ms ease;
+    opacity: 1;
+    display:block;
+    max-width: 98vw;
+  }
+</style>
 </head>
 <body>
   <img id="slideshow" src="" alt="Slideshow">
+<script>
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get("urls");
+  const intervalMs = parseInt(params.get("interval")) || 4000;
 
-  <script>
-    // Get URL parameters
-    const params = new URLSearchParams(window.location.search);
-    const urlParam = params.get("urls");
+  let imageUrls = [];
+  if (urlParam) imageUrls = urlParam.split(",").map(u => decodeURIComponent(u.trim())).filter(Boolean);
 
-    // Parse list of URLs (comma-separated)
-    let imageUrls = [];
-    if (urlParam) {
-      imageUrls = urlParam.split(",").map(u => decodeURIComponent(u.trim()));
-    }
-
-    // Fallback if none provided
-    if (imageUrls.length === 0) {
+  if (imageUrls.length === 0) {
     imageUrls = [
-        "https://picsum.photos/800/600?1",
-        "https://picsum.photos/800/600?2",
-        "https://picsum.photos/800/600?3"
-
-	    //	    "https://leadfluss.de/wp-content/uploads/2025/02/Leadfluss-gruenes-Logo-weisse-Schrift.png",
+      "https://picsum.photos/seed/1/1200/800",
+      "https://picsum.photos/seed/2/800/1200",
+      "https://picsum.photos/seed/3/1400/700"
     ];
-    }
+  }
 
-    const imgElement = document.getElementById("slideshow");
-    let currentIndex = 0;
+  const img = document.getElementById("slideshow");
+  let currentIndex = 0;
+  // Start with a preloaded first image
+  const first = new Image();
+  first.onload = () => { img.src = first.src; };
+  first.src = imageUrls[0];
 
-    function showNextImage() {
-      imgElement.style.opacity = 0; // fade out
-      setTimeout(() => {
-        imgElement.src = imageUrls[currentIndex];
-        imgElement.style.opacity = 1; // fade in
-        currentIndex = (currentIndex + 1) % imageUrls.length;
-      }, 1000);
-    }
+  function showNextImage() {
+    const nextIndex = (currentIndex + 1) % imageUrls.length;
+    const nextUrl = imageUrls[nextIndex];
 
-    // Start slideshow
-    imgElement.src = imageUrls[0];
-    currentIndex = 1;
-    setInterval(showNextImage, 4000); // change every 4 seconds
-  </script>
+    // Preload the next image
+    const pre = new Image();
+    let loaded = false;
+    pre.onload = () => loaded = true;
+
+    pre.onerror = () => {
+      // Skip this image on error
+      console.warn("Failed to load image:", nextUrl);
+      currentIndex = nextIndex; // advance anyway to avoid stuck loop
+    };
+
+    pre.src = nextUrl;
+
+    // Fade out current image, then swap when preloaded; if still loading, wait until load
+    img.style.opacity = 0;
+
+    // After fade-out duration, swap if loaded; if not loaded, wait for load event then fade in.
+    const fadeOutMs = 600;
+    // const fadeOutMs = (intervalMs/imageUrls.length)*0.45;
+    setTimeout(() => {
+      if (loaded) {
+        img.src = pre.src;
+        img.style.opacity = 1;
+        currentIndex = nextIndex;
+      } else {
+        // wait for the image to load then swap and fade in
+        pre.onload = () => {
+          img.src = pre.src;
+          // small timeout to ensure browser registers src change before fading in
+          requestAnimationFrame(() => requestAnimationFrame(() => img.style.opacity = 1));
+          currentIndex = nextIndex;
+        };
+        pre.onerror = () => {
+          // If load fails, just fade back in the old image to avoid blank screen
+          img.style.opacity = 1;
+          currentIndex = nextIndex;
+        };
+      }
+    }, fadeOutMs);
+  }
+
+  // Interval loop
+  setInterval(showNextImage, intervalMs);
+})();
+</script>
 </body>
 </html>
